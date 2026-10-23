@@ -87,4 +87,15 @@ module "networking" {
   vnet_address_space       = ["10.10.0.0/16"]
   subnet_mgmt_prefixes     = ["10.10.1.0/24"]
   subnet_workload_prefixes = ["10.10.2.0/24"]
+
+  # Security baseline toggles (defined in variables.tf, all off by default)
+  admin_source_cidrs              = var.admin_source_cidrs
+  enable_management_ssh           = var.enable_management_ssh
+  enable_management_rdp           = var.enable_management_rdp
+  enable_workload_allow_from_mgmt = var.enable_workload_allow_from_mgmt
+  workload_allowed_ports          = var.workload_allowed_ports
+
+  # NSG diagnostics -> Log Analytics workspace from the logging module
+  enable_nsg_diagnostics     = var.enable_nsg_diagnostics
+  log_analytics_workspace_id = module.logging.law_id
 }

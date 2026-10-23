@@ -1,49 +1,57 @@
 # multi-cloud-free-tier-lab
 
-A security-first, Infrastructure-as-Code (Terraform) lab that deploys **zero-cost / free-tier** learning environments across **Azure, AWS, and GCP**.
+A security-first, Infrastructure-as-Code (Terraform) lab for building **zero-cost / free-tier** learning environments across **Azure, AWS, and GCP**.
 
-This repo is designed as a portfolio project to demonstrate:
+> **Status:** Azure foundation is built and validates. AWS and GCP stacks are on the roadmap below.
 
-- **Cloud architecture depth** (network segmentation, identity, logging)
-- **IaC maturity** (repeatable deployments, modular structure, environment separation)
-- **Security-first engineering** (baseline controls + detection notes)
-- **Operational thinking** (runbooks, guardrails, cost controls)
-
-> ⚠️ Cost note: Cloud providers change free tier offerings. This repo includes guardrails to prevent accidental spend, but you are responsible for verifying pricing before deploying.
+> ⚠️ Cost note: Cloud providers change free tier offerings. Verify pricing before you deploy. Log Analytics ingestion can incur cost depending on volume and retention.
 
 ---
 
-## Architecture Overview
+## What's Built (Azure)
 
-- **Network segmentation:** separate subnets for mgmt and workloads; controlled ingress/egress
-- **Logging architecture:** centralized logs and audit trails per cloud
-- **RBAC/IAM model:** least-privilege roles for admin vs operator vs read-only
-- **Security baseline:** default-deny network rules, logging enabled, MFA assumptions
+Everything lives in `terraform/azure/envs/dev`.
 
-See: `docs/architecture.md`
+- **Resource group** with a consistent naming pattern: `<type>-<owner>-<workload>-<platform>-<env>-<region>-<instance>` (example: `rg-mbeni-mcl-az-dev-eus-01`)
+- **Shared tags** on every resource: owner, workload, platform, environment, repo, managed_by
+- **Logging module:** Log Analytics workspace (PerGB2018, 30-day retention)
+- **Networking module:**
+  - VNet `10.10.0.0/16` with separate **mgmt** and **workload** subnets
+  - NSG per subnet, **default-deny inbound** (no allow rules unless you turn them on)
+  - Optional SSH/RDP into mgmt, limited to `admin_source_cidrs`
+  - Optional mgmt-to-workload ports, to control lateral movement
+  - Optional NSG diagnostics shipped to the Log Analytics workspace
 
----
-
-## Repository Layout
-
-- `terraform/azure` - Azure patterns (provider-agnostic where possible)
-- `terraform/aws` - AWS free-tier patterns
-- `terraform/gcp` - GCP always-free/free-tier patterns
-- `docs/` - architecture, security, logging, RBAC, and runbooks
+See [`docs/architecture.md`](docs/architecture.md) for the diagram and toggle reference.
 
 ---
 
-## Guardrails (Anti-Surprise-Billing)
+## Quick Start
 
-- Budgets/alerts where available
-- “Never deploy” list for known cost traps
-- Naming + tagging standards
-- Required variables set to free-tier sizes
+```bash
+cd terraform/azure/envs/dev
+az login
+terraform init
+terraform plan -var="owner=<your-initials>"
+terraform apply -var="owner=<your-initials>"
+```
 
-See: `docs/cost-guardrails.md`
+Tear it down when you're done:
+
+```bash
+terraform destroy -var="owner=<your-initials>"
+```
 
 ---
 
-## Status
+## Roadmap
 
-This is an evolving lab. Improvements are tracked via Issues and PRs.
+- [x] Azure: resource group, naming, tagging
+- [x] Azure: VNet, segmented subnets, default-deny NSGs
+- [x] Azure: Log Analytics + optional NSG diagnostics
+- [ ] Azure: NSG flow logs (needs Network Watcher + storage module)
+- [ ] Azure: RBAC model (admin / operator / read-only)
+- [ ] Azure: budget + cost alerts
+- [ ] CI: `terraform fmt` / `validate` / Checkov on pull requests
+- [ ] AWS free-tier stack (VPC, IAM, CloudTrail)
+- [ ] GCP always-free stack (VPC, IAM, Cloud Logging)
